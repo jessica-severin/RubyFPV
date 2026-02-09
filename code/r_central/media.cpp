@@ -37,6 +37,7 @@
 #include "../common/string_utils.h"
 #include "media.h"
 #include "../renderer/render_engine.h"
+#include "osd/osd.h"
 #include "popup.h"
 #include "ruby_central.h"
 #include "shared_vars.h"
@@ -292,9 +293,18 @@ bool media_take_screenshot(bool bIncludeOSD)
 
    ruby_signal_alive();
 
-   if ( 0 != pthread_create(&s_pThreadMediaTakeScreenShot, NULL, &_thread_media_take_screenshot, NULL) )
-      _media_take_screenshot();
-   else
-      pthread_detach(s_pThreadMediaTakeScreenShot);
+   #ifdef HW_PLATFORM_RADXA
+      g_pRenderEngine->startFrame();
+      if ( bIncludeOSD )
+         osd_render_all();
+      _media_take_screenshot();  //same thread
+      g_pRenderEngine->endFrame();
+   #else
+      if ( 0 != pthread_create(&s_pThreadMediaTakeScreenShot, NULL, &_thread_media_take_screenshot, NULL) )
+         _media_take_screenshot();
+      else
+         pthread_detach(s_pThreadMediaTakeScreenShot);
+   #endif
+
    return true;
 }

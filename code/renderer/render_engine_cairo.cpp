@@ -1896,9 +1896,9 @@ bool RenderEngineCairo::takeScreenshot(const char* path) {
 
    type_drm_buffer* pOutputBufferInfo = ruby_drm_core_get_back_draw_buffer();
    if ( pOutputBufferInfo->uBufferId == m_uRenderDrawSurfacesIds[0] )
-      osdSurface = m_pMainCairoSurface[1];
-   if ( pOutputBufferInfo->uBufferId == m_uRenderDrawSurfacesIds[1] )
       osdSurface = m_pMainCairoSurface[0];
+   if ( pOutputBufferInfo->uBufferId == m_uRenderDrawSurfacesIds[1] )
+      osdSurface = m_pMainCairoSurface[1];
 
    //if (!osdSurface) return false;
 
