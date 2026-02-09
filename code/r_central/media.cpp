@@ -296,7 +296,13 @@ bool media_take_screenshot(bool bIncludeOSD)
    #ifdef HW_PLATFORM_RADXA
       g_pRenderEngine->startFrame();
       if ( bIncludeOSD )
-         osd_render_all();
+      {
+         g_TimeNow = get_current_timestamp_ms();
+         //render_all(g_TimeNow); //with menus and popups ad osd
+         render_all_with_menus(g_TimeNow, true, false, false); //no menus, only popups and osd
+         //render_all_with_menus(g_TimeNow, false, false, false); //no menus, only popups and osd
+         //osd_render_all(); //only osd
+      }
       _media_take_screenshot();  //same thread
       g_pRenderEngine->endFrame();
    #else

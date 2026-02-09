@@ -1881,9 +1881,9 @@ bool RenderEngineCairo::takeScreenshot(const char* path) {
 
    cairo_surface_t *compositeSurface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, m_iRenderWidth, m_iRenderHeight);
 
-   cairo_surface_t *rubyBg = cairo_image_surface_create_from_png("res/ruby_bg5.png");
    cairo_surface_t *osdSurface = NULL;
-   cairo_surface_t *videoSurface = NULL;
+   //cairo_surface_t *videoSurface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, m_iRenderWidth, m_iRenderHeight);
+   //unsigned char *videoBufferCairo = cairo_image_surface_get_data (videoSurface);
 
    cairo_t *ctx = cairo_create(compositeSurface);
 
@@ -1896,13 +1896,14 @@ bool RenderEngineCairo::takeScreenshot(const char* path) {
 
    type_drm_buffer* pOutputBufferInfo = ruby_drm_core_get_back_draw_buffer();
    if ( pOutputBufferInfo->uBufferId == m_uRenderDrawSurfacesIds[0] )
-      osdSurface = m_pMainCairoSurface[0];
-   if ( pOutputBufferInfo->uBufferId == m_uRenderDrawSurfacesIds[1] )
       osdSurface = m_pMainCairoSurface[1];
+   if ( pOutputBufferInfo->uBufferId == m_uRenderDrawSurfacesIds[1] )
+      osdSurface = m_pMainCairoSurface[0];
 
    //if (!osdSurface) return false;
 
    //test of compositing the RubyBg
+   cairo_surface_t *rubyBg = cairo_image_surface_create_from_png("res/ruby_bg5.png");
    int imageWidth = cairo_image_surface_get_width(rubyBg);
    int imageHeight = cairo_image_surface_get_height(rubyBg);
    int offsetX = (m_iRenderWidth - imageWidth) / 2;
@@ -1917,24 +1918,15 @@ bool RenderEngineCairo::takeScreenshot(const char* path) {
    cairo_pattern_set_filter(cairo_get_source(ctx), CAIRO_FILTER_NEAREST);
    cairo_paint(ctx);
    //cairo_scale(ctx, scaleX, scaleY);
-
+   cairo_surface_destroy(rubyBg);
 
    //composite OSD surface
-   // int imageWidth = cairo_image_surface_get_width(osdSurface);
-   // int imageHeight = cairo_image_surface_get_height(osdSurface);
-   // int offsetX = (m_iRenderWidth - imageWidth) / 2;
-   // int offsetY = (m_iRenderHeight - imageHeight) / 2;
-   // if ( offsetX < 0 ) { offsetX = 0; }
-   // if ( offsetY < 0 ) { offsetY = 0; }
-   //cairo_set_source_surface(ctx, osdSurface, offsetX, offsetY);
-   //double scaleX = cairo_image_surface_get_width(rubyBg) / (float) m_iRenderWidth;
-   //double scaleY = cairo_image_surface_get_height(rubyBg) / (float) m_iRenderHeight;
-   //cairo_scale(ctx, 1.0/scaleX, 1.0/scaleY);
-   cairo_set_source_surface(ctx, osdSurface, 0,0);
-   cairo_pattern_set_filter(cairo_get_source(ctx), CAIRO_FILTER_NEAREST);
-   cairo_paint(ctx);
-   //cairo_scale(ctx, scaleX, scaleY);
-
+   if ( osdSurface)
+   {
+      cairo_set_source_surface(ctx, osdSurface, 0,0);
+      cairo_pattern_set_filter(cairo_get_source(ctx), CAIRO_FILTER_NEAREST);
+      cairo_paint(ctx);
+   }
 
    //TODO: create a new cairo surface with a copy of the video DRM buffer, then composite the osd over video surface
 
@@ -1965,6 +1957,7 @@ bool RenderEngineCairo::takeScreenshot(const char* path) {
 
    fclose(pngfp);
    cairo_destroy(ctx);
+   cairo_surface_destroy(compositeSurface);
 
    if ( status==CAIRO_STATUS_SUCCESS ) return true;
    return false;

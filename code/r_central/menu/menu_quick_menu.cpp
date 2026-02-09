@@ -226,6 +226,7 @@ void MenuQuickMenu::onSelectItem()
          executeQuickActionOSDSize();
          break;
       case TakePicture:
+         menu_discard_all();
          executeQuickActionTakePicture();
          break;
       case VideoRecording:
