@@ -47,6 +47,9 @@ class RenderEngineCairo: public RenderEngine
      virtual void fillCircle(float x, float y, float r);
      virtual void drawCircle(float x, float y, float r);
      virtual void drawArc(float x, float y, float r, float a1, float a2);
+
+     virtual bool takeScreenshot(const char* path);
+
      
    protected:
       cairo_t* _createTempDrawContext();

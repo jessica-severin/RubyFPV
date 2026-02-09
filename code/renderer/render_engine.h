@@ -142,6 +142,9 @@ class RenderEngine
 
      bool rectIntersect(float x1, float y1, float w1, float h1, float x2, float y2, float w2, float h2);
 
+     virtual bool takeScreenshot(const char* path);
+
+
    protected:
       virtual int _getRawFontIndexFromId(u32 fontId);
       virtual RenderEngineRawFont* _getRawFontFromId(u32 fontId);

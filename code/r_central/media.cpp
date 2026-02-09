@@ -234,9 +234,18 @@ void _media_take_screenshot()
       return;
 
    s_bMediaIsTakingScreenShot = true;
+
+   #ifdef HW_PLATFORM_RADXA
+   if( g_pRenderEngine )
+      g_pRenderEngine->takeScreenshot(s_szMediaScreenShotFilename);
+   #endif
+
+   #ifdef HW_PLATFORM_RASPBERRY
    char szComm[256];
    sprintf(szComm, "./raspi2png -p %s", s_szMediaScreenShotFilename);
    hw_execute_bash_command_nonblock(szComm, NULL);
+   #endif
+
    ruby_signal_alive();
 
    log_line("Media Storage: Took a screenshot to file: %s", s_szMediaScreenShotFilename);
@@ -274,12 +283,12 @@ bool media_take_screenshot(bool bIncludeOSD)
    strcat(szFile, s_szMediaCurrentScreenshotFileName);
    strncpy(s_szMediaScreenShotFilename, szFile, MAX_FILE_PATH_SIZE);
 
-   #ifdef HW_PLATFORM_RADXA
-   log_line("Media Storage: Try to take screenshot to file: %s", szFile);
-   Popup* p = new Popup("Screenshot capability not available on Radxa board", 0.1,0.72, 2);
-   popups_add_topmost(p);
-   return false;
-   #endif
+   //#ifdef HW_PLATFORM_RADXA
+   //log_line("Media Storage: Try to take screenshot to file: %s", szFile);
+   //Popup* p = new Popup("Screenshot capability not available on Radxa board", 0.1,0.72, 2);
+   //popups_add_topmost(p);
+   //return false;
+   //#endif
 
    ruby_signal_alive();
 

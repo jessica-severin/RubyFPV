@@ -1859,3 +1859,114 @@ void RenderEngineCairo::_bltFontChar(int iDestX, int iDestY, int iSrcX, int iSrc
       }
    }
 }
+
+cairo_status_t ruby_cairo_png_write_function(void *closure, const unsigned char *data, unsigned int length) {
+    FILE *fp = (FILE *)closure;
+    // Write the data chunk to the file (or stdout in this example)
+    if (fwrite(data, 1, length, fp) == length) {
+        return CAIRO_STATUS_SUCCESS;
+    } else {
+        return CAIRO_STATUS_WRITE_ERROR;
+    }
+}
+
+bool RenderEngineCairo::takeScreenshot(const char* path) {
+   //ciaro/DRM based screenshot code.
+   //use the current m_pMainCairoSurface for the cairo layer
+   //and wraps the video DRM surface (that supports NV video type format) into a temp cairo surface
+   //to allow cairo based layer compositing and cairo saveToPNG
+
+   log_line("[RenderEngineCairo] cairoScreenshot : %s", path);
+   log_line("[RenderEngineCairo] Display size is: %d x %d",  m_iRenderWidth, m_iRenderHeight );
+
+   cairo_surface_t *compositeSurface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, m_iRenderWidth, m_iRenderHeight);
+
+   cairo_surface_t *rubyBg = cairo_image_surface_create_from_png("res/ruby_bg5.png");
+   cairo_surface_t *osdSurface = NULL;
+   cairo_surface_t *videoSurface = NULL;
+
+   cairo_t *ctx = cairo_create(compositeSurface);
+
+   //fill background
+   cairo_rectangle(ctx, 0, 0, m_iRenderWidth, m_iRenderHeight);
+   //cairo_set_source_rgba(ctx, 66.0/255, 221.0/255, 245.0/255, 1); //light blue for color test
+   cairo_set_source_rgba(ctx, 0, 0, 0, 1); //black
+   cairo_fill(ctx);
+
+
+   type_drm_buffer* pOutputBufferInfo = ruby_drm_core_get_back_draw_buffer();
+   if ( pOutputBufferInfo->uBufferId == m_uRenderDrawSurfacesIds[0] )
+      osdSurface = m_pMainCairoSurface[1];
+   if ( pOutputBufferInfo->uBufferId == m_uRenderDrawSurfacesIds[1] )
+      osdSurface = m_pMainCairoSurface[0];
+
+   //if (!osdSurface) return false;
+
+   //test of compositing the RubyBg
+   int imageWidth = cairo_image_surface_get_width(rubyBg);
+   int imageHeight = cairo_image_surface_get_height(rubyBg);
+   int offsetX = (m_iRenderWidth - imageWidth) / 2;
+   int offsetY = (m_iRenderHeight - imageHeight) / 2;
+   if ( offsetX < 0 ) { offsetX = 0; }
+   if ( offsetY < 0 ) { offsetY = 0; }
+   cairo_set_source_surface(ctx, rubyBg, offsetX, offsetY);
+   //double scaleX = cairo_image_surface_get_width(rubyBg) / (float) m_iRenderWidth;
+   //double scaleY = cairo_image_surface_get_height(rubyBg) / (float) m_iRenderHeight;
+   //cairo_scale(ctx, 1.0/scaleX, 1.0/scaleY);
+   //cairo_set_source_surface(ctx, rubyBg, 0,0);
+   cairo_pattern_set_filter(cairo_get_source(ctx), CAIRO_FILTER_NEAREST);
+   cairo_paint(ctx);
+   //cairo_scale(ctx, scaleX, scaleY);
+
+
+   //composite OSD surface
+   // int imageWidth = cairo_image_surface_get_width(osdSurface);
+   // int imageHeight = cairo_image_surface_get_height(osdSurface);
+   // int offsetX = (m_iRenderWidth - imageWidth) / 2;
+   // int offsetY = (m_iRenderHeight - imageHeight) / 2;
+   // if ( offsetX < 0 ) { offsetX = 0; }
+   // if ( offsetY < 0 ) { offsetY = 0; }
+   //cairo_set_source_surface(ctx, osdSurface, offsetX, offsetY);
+   //double scaleX = cairo_image_surface_get_width(rubyBg) / (float) m_iRenderWidth;
+   //double scaleY = cairo_image_surface_get_height(rubyBg) / (float) m_iRenderHeight;
+   //cairo_scale(ctx, 1.0/scaleX, 1.0/scaleY);
+   cairo_set_source_surface(ctx, osdSurface, 0,0);
+   cairo_pattern_set_filter(cairo_get_source(ctx), CAIRO_FILTER_NEAREST);
+   cairo_paint(ctx);
+   //cairo_scale(ctx, scaleX, scaleY);
+
+
+   //TODO: create a new cairo surface with a copy of the video DRM buffer, then composite the osd over video surface
+
+   /*
+    The DRM layers are numbered 0/1. 1 is the video layer in NV12. these are init in ruby_player_radxa 168 for example
+   log_line("Init display video layer...");
+   ruby_drm_core_init(1, DRM_FORMAT_NV12, hdmi_get_current_resolution_width(), hdmi_get_current_resolution_height(), hdmi_get_current_resolution_refresh());
+   log_line("Done init display video layer.");
+
+   there is also this which seems to send raw encoded data to the mpp decoder which I think eventually writes into the DRM video layer
+   mpp_feed_data_to_decoder(uBuffer, nRead);
+
+   the cairo drm buffers are got via
+   type_drm_buffer* pMainDisplayBuffer = ruby_drm_core_get_main_draw_buffer();
+
+   getting the shared memory video buffer might be like this from (rx_video?output.cpp 603:639)
+   int fdSM = shm_open(SM_STREAMER_NAME, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+   u8* s_pSMVideoStreamerWrite = NULL;
+   s_pSMVideoStreamerWrite = (u8*) mmap(NULL, SM_STREAMER_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fdSM, 0);
+
+    */
+
+   FILE *pngfp = fopen(path, "w");
+
+   cairo_status_t status = cairo_surface_write_to_png_stream (compositeSurface, //osdSurface,
+                                   ruby_cairo_png_write_function,
+                                   pngfp);
+
+   fclose(pngfp);
+   cairo_destroy(ctx);
+
+   if ( status==CAIRO_STATUS_SUCCESS ) return true;
+   return false;
+}
+
