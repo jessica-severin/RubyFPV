@@ -1947,6 +1947,19 @@ bool RenderEngineCairo::takeScreenshot(const char* path) {
    u8* s_pSMVideoStreamerWrite = NULL;
    s_pSMVideoStreamerWrite = (u8*) mmap(NULL, SM_STREAMER_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fdSM, 0);
 
+   1) I'll try to just grab the video DRM back buffer and hope it works
+   2) probably won't work and I'll need to use a consumer approach
+
+   option2 is to create a new consumer in rx_video_output.cpp,
+   rx_video_output_video_data() is the one that gets the video data and sends it to different consumers
+   similar to how the video is passed to rx_video_recording.cpp, called from same method above
+
+   for thread timing, another option is to use a global variable 3 state trigger (SCREENSHOT_IDLE, SCREENSHOT_ARMED, SCREENSHOT_CAPTURED)
+   quick-action arms the trigger
+   rx_video_output_video_data() watches for armed trigger and then sends next video frame to screenshot consumer
+   screenshot consumer processes frame into ARGB encoding for cairo and sets state to SCREENSHOT_CAPTURED
+   ruby_central loops watches for CAPTURED and then calls function to do the final osd surface prep, and then calling this method to composite and save
+
     */
 
    FILE *pngfp = fopen(path, "w");
