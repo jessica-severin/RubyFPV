@@ -484,11 +484,28 @@ void RenderEngineCairo::drawImage(float xPos, float yPos, float fWidth, float fH
   
    double scaleX = cairo_image_surface_get_width(m_pImages[indexImage]) / (float) m_iRenderWidth;
    double scaleY = cairo_image_surface_get_height(m_pImages[indexImage]) / (float) m_iRenderHeight;
-   cairo_scale(m_pCairoCtx, 1.0/scaleX, 1.0/scaleY);
-   cairo_set_source_surface(m_pCairoCtx, m_pImages[indexImage], 0,0);
+
+   //preserve image aspect ratio and center
+   double offsetX = 0;
+   double offsetY = 0;
+   double scale = scaleX;
+   if(scaleY > scale) {
+      // < picks smaller scale so image is cropped on the longest side
+      // > picks larger scale so image has black bars on the shorter side
+      scale = scaleY;
+   }
+   if(scaleX != scaleY) {
+      double newWidth = cairo_image_surface_get_width(m_pImages[indexImage]) / scale;
+      double newHeight = cairo_image_surface_get_height(m_pImages[indexImage]) / scale;
+      offsetX = (m_iRenderWidth - newWidth) / 2.0;
+      offsetY = (m_iRenderHeight - newHeight) / 2.0;
+   }
+
+   cairo_scale(m_pCairoCtx, 1.0/scale, 1.0/scale);
+   cairo_set_source_surface(m_pCairoCtx, m_pImages[indexImage], offsetX*scale, offsetY*scale);
    cairo_pattern_set_filter(cairo_get_source(m_pCairoCtx), CAIRO_FILTER_NEAREST);
    cairo_paint(m_pCairoCtx);
-   cairo_scale(m_pCairoCtx, scaleX, scaleY);
+   cairo_scale(m_pCairoCtx, scale, scale);
 }
 
 void RenderEngineCairo::drawImageAlpha(float xPos, float yPos, float fWidth, float fHeight, u32 uImageId, u8 uAlpha)
